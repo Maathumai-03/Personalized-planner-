@@ -57,11 +57,381 @@ h3 {
 }
 
 #root {
-  max-width: 1080px;
+  max-width: 1280px;
   margin: 0 auto;
   min-height: 100svh;
   padding: 1.25rem 1rem 3rem;
   text-align: left;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: minmax(200px, 240px) 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+}
+
+.app-sidebar {
+  position: sticky;
+  top: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 0.5rem;
+  box-shadow: var(--shadow);
+}
+
+@media (max-width: 900px) {
+  .app-sidebar {
+    position: static;
+  }
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sidebar-link {
+  font: inherit;
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.sidebar-link:hover {
+  background: var(--accent-muted);
+  color: var(--text-h);
+}
+
+.sidebar-link.active {
+  background: var(--accent-muted);
+  color: var(--text-h);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.app-content {
+  min-width: 0;
+}
+
+.panel-intro.tight {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.stack-gap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stack-gap.nested {
+  gap: 0.5rem;
+}
+
+/* Collapsible panels */
+.collapse {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.collapse + .collapse {
+  margin-top: 0.5rem;
+}
+
+.collapse-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 500;
+  color: var(--text-h);
+  background: linear-gradient(
+    to bottom,
+    rgba(109, 40, 217, 0.06),
+    transparent
+  );
+}
+
+.collapse-summary::-webkit-details-marker {
+  display: none;
+}
+
+.collapse-caret {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+details[open] > .collapse-summary .collapse-caret {
+  transform: rotate(45deg);
+}
+
+.collapse-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.collapse-title-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+}
+
+.collapse-title-main {
+  font-weight: 600;
+}
+
+.collapse-title-sub {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--accent);
+}
+
+.collapse-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--accent-muted);
+  color: var(--text-h);
+}
+
+.collapse-body {
+  padding: 0.75rem 1rem 1rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.collapse-nested {
+  margin-bottom: 0.75rem;
+}
+
+.collapse-nested .collapse-summary {
+  background: var(--surface);
+  font-size: 0.95rem;
+}
+
+.collapse-nested .collapse-body {
+  background: var(--surface);
+}
+
+.org-panel .collapse-body {
+  background: var(--bg);
+}
+
+.org-section .collapse-body {
+  background: var(--bg);
+}
+
+/* Overview stats */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.stat-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.stat-value {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--text-h);
+  line-height: 1.1;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: var(--text-h);
+}
+
+.stat-hint {
+  font-size: 0.75rem;
+  color: var(--text);
+}
+
+/* Org task panel */
+.org-panel-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.subtle {
+  color: var(--text);
+  font-size: 0.88rem;
+}
+
+.org-task-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.org-task-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.org-task-row:last-child {
+  border-bottom: none;
+}
+
+.org-task-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
+.org-task-check .done {
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+
+.org-task-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.org-task-add input {
+  flex: 1;
+  min-width: 160px;
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-h);
+}
+
+.org-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.semester-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.semester-subjects {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.inline-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.inline-add-row input {
+  flex: 1;
+  min-width: 200px;
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-h);
+}
+
+.field-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: var(--text-h);
+}
+
+.subject-fields textarea {
+  width: 100%;
+  font: inherit;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 0.65rem;
+  background: var(--surface);
+  color: var(--text-h);
+}
+
+.learning-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.learning-col-title {
+  font-size: 0.95rem;
+  margin: 0 0 0.5rem;
+}
+
+.learning-form {
+  margin-bottom: 1rem;
+}
+
+.form-row .grow {
+  flex: 2;
+  min-width: 180px;
+}
+
+.btn.small {
+  padding: 0.3rem 0.65rem;
+  font-size: 0.88rem;
+}
+
+.btn.tiny {
+  padding: 0.1rem 0.35rem;
+  font-size: 0.8rem;
+}
+
+.empty-hint.tight {
+  margin: 0.25rem 0;
 }
 
 .app-header {

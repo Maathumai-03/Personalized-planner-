@@ -37,6 +37,7 @@ export function OrgForm({
       notes: notes.trim() || undefined,
       startedAt: startedAt || undefined,
       endedAt: endedAt || undefined,
+      orgTasks: initial?.orgTasks ?? [],
     })
     if (!initial) {
       setName('')

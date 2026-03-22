@@ -1,20 +1,27 @@
 import { useCallback, useRef, useState } from 'react'
 import { ConfirmDialog } from './components/ConfirmDialog'
+import { Collapse } from './components/Collapse'
 import { DateNav } from './components/DateNav'
 import { EditTaskModal } from './components/EditTaskModal'
-import { OrgCard } from './components/OrgCard'
+import { LearningPanel } from './components/LearningPanel'
 import { OrgForm } from './components/OrgForm'
+import { OrgPanel } from './components/OrgPanel'
+import { OverviewPanel } from './components/OverviewPanel'
 import { QuickTaskForm } from './components/QuickTaskForm'
+import { SemestersPanel } from './components/SemestersPanel'
 import { TaskList } from './components/TaskList'
 import { toLocalISODate } from './dateUtils'
 import { usePlannerState } from './hooks/usePlannerState'
-import {
-  exportStateJson,
-  parseImportedState,
-} from './storage'
+import { exportStateJson, parseImportedState } from './storage'
 import type { Organization, Task, TaskCategory } from './types'
 
-type Tab = 'daily' | 'categories' | 'orgs'
+type Tab =
+  | 'overview'
+  | 'daily'
+  | 'categories'
+  | 'clubs'
+  | 'semesters'
+  | 'learning'
 
 const categoryOrder: TaskCategory[] = [
   'need',
@@ -30,6 +37,15 @@ const categorySectionTitle: Record<TaskCategory, string> = {
   project: 'Projects',
 }
 
+const navItems: { id: Tab; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'daily', label: 'Daily' },
+  { id: 'categories', label: 'Categories' },
+  { id: 'clubs', label: 'Clubs & projects' },
+  { id: 'semesters', label: 'Semesters' },
+  { id: 'learning', label: 'Skills & courses' },
+]
+
 export default function App() {
   const {
     state,
@@ -39,10 +55,23 @@ export default function App() {
     addOrganization,
     updateOrganization,
     deleteOrganization,
+    addOrgTask,
+    updateOrgTask,
+    deleteOrgTask,
+    addSemester,
+    updateSemester,
+    deleteSemester,
+    moveSemester,
+    addSubject,
+    updateSubject,
+    deleteSubject,
+    addLearningItem,
+    updateLearningItem,
+    deleteLearningItem,
     replaceState,
   } = usePlannerState()
 
-  const [tab, setTab] = useState<Tab>('daily')
+  const [tab, setTab] = useState<Tab>('overview')
   const [selectedDate, setSelectedDate] = useState(() =>
     toLocalISODate(new Date()),
   )
@@ -56,10 +85,9 @@ export default function App() {
   } | null>(null)
 
   const importInputRef = useRef<HTMLInputElement>(null)
+  const todayIso = toLocalISODate(new Date())
 
-  const dailyTasks = state.tasks.filter(
-    (t) => t.dueDate === selectedDate,
-  )
+  const dailyTasks = state.tasks.filter((t) => t.dueDate === selectedDate)
 
   const exportBackup = useCallback(() => {
     const json = exportStateJson(state)
@@ -98,7 +126,13 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <div className="app-header-top">
-          <h1 className="app-title">Maathu planner</h1>
+          <div>
+            <h1 className="app-title">Maathu planner</h1>
+            <p className="app-tagline">
+              Dashboard for tasks, school, clubs, and learning — stored in this
+              browser only.
+            </p>
+          </div>
           <div className="header-actions">
             <button type="button" className="btn secondary" onClick={exportBackup}>
               Export JSON
@@ -120,160 +154,199 @@ export default function App() {
             />
           </div>
         </div>
-        <p className="app-tagline">
-          Tasks, categories, and roles — stored only in this browser.
-        </p>
-        <nav className="tabs" aria-label="Main">
-          <button
-            type="button"
-            className={`tab ${tab === 'daily' ? 'active' : ''}`}
-            onClick={() => setTab('daily')}
-          >
-            Daily
-          </button>
-          <button
-            type="button"
-            className={`tab ${tab === 'categories' ? 'active' : ''}`}
-            onClick={() => setTab('categories')}
-          >
-            Categories
-          </button>
-          <button
-            type="button"
-            className={`tab ${tab === 'orgs' ? 'active' : ''}`}
-            onClick={() => setTab('orgs')}
-          >
-            Clubs &amp; external
-          </button>
-        </nav>
       </header>
 
-      <main className="app-main">
-        {tab === 'daily' && (
-          <section aria-labelledby="daily-heading" className="panel">
-            <h2 id="daily-heading" className="panel-title">
-              Day view
-            </h2>
-            <p className="panel-intro">
-              Tasks with a <strong>due date</strong> matching the selected day
-              appear here. New tasks default to the selected date.
-            </p>
-            <DateNav selectedDate={selectedDate} onChange={setSelectedDate} />
-            <QuickTaskForm
-              key={selectedDate}
-              defaultDueDate={selectedDate}
-              onSubmit={addTask}
-            />
-            <TaskList
-              tasks={dailyTasks}
-              showDueBadge={false}
-              emptyMessage="No tasks due on this day. Add one above or pick another date."
-              onToggle={(id, completed) => updateTask(id, { completed })}
-              onEdit={setEditingTask}
-              onRequestDelete={setConfirmTask}
-            />
-          </section>
-        )}
+      <div className="app-shell">
+        <aside className="app-sidebar" aria-label="Primary">
+          <nav className="sidebar-nav">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`sidebar-link ${tab === item.id ? 'active' : ''}`}
+                onClick={() => setTab(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        </aside>
 
-        {tab === 'categories' && (
-          <section aria-labelledby="cat-heading" className="panel">
-            <h2 id="cat-heading" className="panel-title">
-              By category
-            </h2>
-            <p className="panel-intro">
-              Every task lives in one category. Use this view to plan by type
-              of work.
-            </p>
-            <div className="category-grid">
-              {categoryOrder.map((cat) => {
-                const list = state.tasks.filter((t) => t.category === cat)
-                return (
-                  <div key={cat} className="category-column">
-                    <h3 className="category-heading">
-                      {categorySectionTitle[cat]}
-                    </h3>
-                    <QuickTaskForm
-                      defaultCategory={cat}
-                      submitLabel="Add"
-                      onSubmit={addTask}
-                    />
-                    <TaskList
-                      tasks={list}
-                      showDueBadge
-                      emptyMessage="Nothing here yet."
-                      onToggle={(id, completed) =>
-                        updateTask(id, { completed })
-                      }
-                      onEdit={setEditingTask}
-                      onRequestDelete={setConfirmTask}
-                    />
+        <main className="app-content">
+          {tab === 'overview' && (
+            <section className="panel">
+              <h2 className="panel-title">Overview</h2>
+              <OverviewPanel state={state} today={todayIso} />
+            </section>
+          )}
+
+          {tab === 'daily' && (
+            <section className="panel">
+              <h2 className="panel-title">Daily</h2>
+              <Collapse
+                title="Day planner"
+                defaultOpen
+                badge={dailyTasks.filter((t) => !t.completed).length}
+              >
+                <p className="panel-intro tight">
+                  Tasks with a <strong>due date</strong> matching the selected day
+                  appear here.
+                </p>
+                <DateNav selectedDate={selectedDate} onChange={setSelectedDate} />
+                <QuickTaskForm
+                  key={selectedDate}
+                  defaultDueDate={selectedDate}
+                  onSubmit={addTask}
+                />
+                <TaskList
+                  tasks={dailyTasks}
+                  showDueBadge={false}
+                  emptyMessage="No tasks due on this day."
+                  onToggle={(id, completed) => updateTask(id, { completed })}
+                  onEdit={setEditingTask}
+                  onRequestDelete={setConfirmTask}
+                />
+              </Collapse>
+            </section>
+          )}
+
+          {tab === 'categories' && (
+            <section className="panel">
+              <h2 className="panel-title">Categories</h2>
+              <p className="panel-intro tight">
+                Expand a category to add or review tasks.
+              </p>
+              <div className="stack-gap">
+                {categoryOrder.map((cat, i) => {
+                  const list = state.tasks.filter((t) => t.category === cat)
+                  return (
+                    <Collapse
+                      key={cat}
+                      title={categorySectionTitle[cat]}
+                      badge={list.filter((t) => !t.completed).length}
+                      defaultOpen={i === 0}
+                      className="category-collapse"
+                    >
+                      <QuickTaskForm
+                        defaultCategory={cat}
+                        submitLabel="Add"
+                        onSubmit={addTask}
+                      />
+                      <TaskList
+                        tasks={list}
+                        showDueBadge
+                        emptyMessage="Nothing here yet."
+                        onToggle={(id, completed) =>
+                          updateTask(id, { completed })
+                        }
+                        onEdit={setEditingTask}
+                        onRequestDelete={setConfirmTask}
+                      />
+                    </Collapse>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
+          {tab === 'clubs' && (
+            <section className="panel">
+              <h2 className="panel-title">Clubs &amp; external projects</h2>
+              <p className="panel-intro tight">
+                Your role and nested tasks for each club or project. Expand a row
+                to see details and task tracking.
+              </p>
+
+              <div className="stack-gap">
+                <Collapse title="Clubs" className="org-section" defaultOpen>
+                  <Collapse title="Add a club" className="collapse-nested">
+                    <OrgForm kind="club" onSubmit={(data) => addOrganization(data)} />
+                  </Collapse>
+                  <div className="stack-gap nested">
+                    {state.organizations
+                      .filter((o) => o.kind === 'club')
+                      .map((org) => (
+                        <OrgPanel
+                          key={org.id}
+                          org={org}
+                          onEdit={setEditingOrg}
+                          onRequestDelete={setConfirmOrg}
+                          onAddTask={addOrgTask}
+                          onToggleTask={(oid, tid, done) =>
+                            updateOrgTask(oid, tid, { completed: done })
+                          }
+                          onDeleteTask={deleteOrgTask}
+                        />
+                      ))}
+                    {state.organizations.filter((o) => o.kind === 'club')
+                      .length === 0 && (
+                      <p className="empty-hint tight">No clubs yet.</p>
+                    )}
                   </div>
-                )
-              })}
-            </div>
-          </section>
-        )}
+                </Collapse>
 
-        {tab === 'orgs' && (
-          <section aria-labelledby="orgs-heading" className="panel">
-            <h2 id="orgs-heading" className="panel-title">
-              Clubs &amp; external projects
-            </h2>
-            <p className="panel-intro">
-              Track where you contribute and your <strong>position</strong> in
-              each club or external project.
-            </p>
-            <div className="org-grid">
-              <div className="org-column">
-                <h3 className="category-heading">Clubs</h3>
-                <OrgForm
-                  kind="club"
-                  onSubmit={(data) => addOrganization(data)}
-                />
-                <div className="org-list">
-                  {state.organizations
-                    .filter((o) => o.kind === 'club')
-                    .map((org) => (
-                      <OrgCard
-                        key={org.id}
-                        org={org}
-                        onEdit={setEditingOrg}
-                        onRequestDelete={setConfirmOrg}
-                      />
-                    ))}
-                  {state.organizations.filter((o) => o.kind === 'club')
-                    .length === 0 && (
-                    <p className="empty-hint">No clubs yet.</p>
-                  )}
-                </div>
+                <Collapse title="External projects" className="org-section" defaultOpen>
+                  <Collapse title="Add a project" className="collapse-nested">
+                    <OrgForm
+                      kind="external"
+                      onSubmit={(data) => addOrganization(data)}
+                    />
+                  </Collapse>
+                  <div className="stack-gap nested">
+                    {state.organizations
+                      .filter((o) => o.kind === 'external')
+                      .map((org) => (
+                        <OrgPanel
+                          key={org.id}
+                          org={org}
+                          onEdit={setEditingOrg}
+                          onRequestDelete={setConfirmOrg}
+                          onAddTask={addOrgTask}
+                          onToggleTask={(oid, tid, done) =>
+                            updateOrgTask(oid, tid, { completed: done })
+                          }
+                          onDeleteTask={deleteOrgTask}
+                        />
+                      ))}
+                    {state.organizations.filter((o) => o.kind === 'external')
+                      .length === 0 && (
+                      <p className="empty-hint tight">No external projects yet.</p>
+                    )}
+                  </div>
+                </Collapse>
               </div>
-              <div className="org-column">
-                <h3 className="category-heading">External projects</h3>
-                <OrgForm
-                  kind="external"
-                  onSubmit={(data) => addOrganization(data)}
-                />
-                <div className="org-list">
-                  {state.organizations
-                    .filter((o) => o.kind === 'external')
-                    .map((org) => (
-                      <OrgCard
-                        key={org.id}
-                        org={org}
-                        onEdit={setEditingOrg}
-                        onRequestDelete={setConfirmOrg}
-                      />
-                    ))}
-                  {state.organizations.filter((o) => o.kind === 'external')
-                    .length === 0 && (
-                    <p className="empty-hint">No external projects yet.</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-      </main>
+            </section>
+          )}
+
+          {tab === 'semesters' && (
+            <section className="panel">
+              <h2 className="panel-title">Semesters &amp; subjects</h2>
+              <SemestersPanel
+                state={state}
+                onAddSemester={addSemester}
+                onUpdateSemester={updateSemester}
+                onDeleteSemester={deleteSemester}
+                onMoveSemester={moveSemester}
+                onAddSubject={addSubject}
+                onUpdateSubject={updateSubject}
+                onDeleteSubject={deleteSubject}
+              />
+            </section>
+          )}
+
+          {tab === 'learning' && (
+            <section className="panel">
+              <h2 className="panel-title">Skills &amp; courses</h2>
+              <LearningPanel
+                items={state.learningItems}
+                onAdd={addLearningItem}
+                onUpdate={updateLearningItem}
+                onDelete={deleteLearningItem}
+              />
+            </section>
+          )}
+        </main>
+      </div>
 
       <EditTaskModal
         key={editingTask?.id ?? 'closed'}
@@ -345,7 +418,7 @@ export default function App() {
       <ConfirmDialog
         open={!!confirmImport?.next}
         title="Replace all data?"
-        message="Importing will replace tasks and organizations in this browser with the file contents. Export a backup first if you are unsure."
+        message="Importing will replace tasks, organizations, semesters, subjects, and learning items in this browser. Export a backup first if you are unsure."
         confirmLabel="Replace data"
         onConfirm={() => {
           if (confirmImport?.next) replaceState(confirmImport.next)
